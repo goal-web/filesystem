@@ -1,9 +1,11 @@
-package filesystem
+package adapters
 
 import (
 	"bufio"
 	"fmt"
 	"github.com/goal-web/contracts"
+	"github.com/goal-web/filesystem"
+	"github.com/goal-web/filesystem/file"
 	"github.com/goal-web/supports/utils"
 	"io/fs"
 	"io/ioutil"
@@ -19,6 +21,14 @@ type local struct {
 	perm fs.FileMode
 }
 
+func LocalAdapter(config contracts.Fields) contracts.FileSystem {
+	return NewLocalFileSystem(
+		utils.GetStringField(config, "name"),
+		utils.GetStringField(config, "root"),
+		config["perm"].(fs.FileMode),
+	)
+}
+
 func NewLocalFileSystem(name, root string, perm fs.FileMode) contracts.FileSystem {
 	stat, err := os.Stat(root)
 
@@ -28,7 +38,7 @@ func NewLocalFileSystem(name, root string, perm fs.FileMode) contracts.FileSyste
 			panic(err)
 		}
 	} else if !stat.IsDir() {
-		panic(fmt.Errorf("%s is not a directory!", root))
+		panic(fmt.Errorf("%s is not a directory", root))
 	}
 
 	if !strings.HasSuffix(root, "/") {
@@ -96,9 +106,9 @@ func (this *local) WriteStream(path string, contents string) error {
 
 func (this *local) GetVisibility(path string) contracts.FileVisibility {
 	if syscall.Access(this.filepath(path), syscall.O_RDWR) != nil {
-		return INVISIBLE
+		return filesystem.INVISIBLE
 	}
-	return VISIBLE
+	return filesystem.VISIBLE
 }
 
 func (this *local) SetVisibility(path string, perm fs.FileMode) error {
@@ -164,9 +174,9 @@ func (this *local) Files(directory string) (results []contracts.File) {
 
 	for _, fileInfo := range fileInfos {
 		if !fileInfo.IsDir() {
-			results = append(results, &file{
+			results = append(results, &file.File{
 				FileInfo: fileInfo,
-				disk:     this.name,
+				DiskName: this.name,
 			})
 		}
 	}
@@ -178,9 +188,9 @@ func (this *local) AllFiles(directory string) (results []contracts.File) {
 	fileInfos := utils.AllFiles(this.filepath(directory))
 
 	for _, fileInfo := range fileInfos {
-		results = append(results, &file{
+		results = append(results, &file.File{
 			FileInfo: fileInfo,
-			disk:     this.name,
+			DiskName: this.name,
 		})
 	}
 

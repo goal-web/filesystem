@@ -2,8 +2,7 @@ package filesystem
 
 import (
 	"github.com/goal-web/contracts"
-	"github.com/goal-web/supports/utils"
-	"io/fs"
+	"github.com/goal-web/filesystem/adapters"
 )
 
 type ServiceProvider struct {
@@ -20,18 +19,12 @@ func (this ServiceProvider) Start() error {
 func (this ServiceProvider) Register(container contracts.Application) {
 	container.Singleton("filesystem", func(config contracts.Config) contracts.FileSystemFactory {
 		factory := &Factory{
-			config:  config,
-			disks:   make(map[string]contracts.FileSystem),
-			drivers: make(map[string]contracts.FileSystemProvider),
+			config: config,
+			disks:  make(map[string]contracts.FileSystem),
+			drivers: map[string]contracts.FileSystemProvider{
+				"local": adapters.LocalAdapter,
+			},
 		}
-
-		factory.Extend("local", func(localConfig contracts.Fields) contracts.FileSystem {
-			return &local{
-				name: utils.GetStringField(localConfig, "name"),
-				root: utils.GetStringField(localConfig, "root"),
-				perm: fs.FileMode(utils.GetIntField(localConfig, "perm")),
-			}
-		})
 
 		return factory
 	})
