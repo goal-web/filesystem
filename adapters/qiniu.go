@@ -5,25 +5,32 @@ import (
 	"github.com/goal-web/contracts"
 	"github.com/goal-web/supports/utils"
 	"github.com/qiniu/go-sdk/v7/auth/qbox"
+	"github.com/qiniu/go-sdk/v7/storage"
 	"io/fs"
 	"time"
 )
 
 func QiniuAdapter(config contracts.Fields) contracts.FileSystem {
-	return &Qiniu{
-		name:   utils.GetStringField(config, "name"),
-		bucket: utils.GetStringField(config, "bucket"),
-		mac: qbox.NewMac(
+	var (
+		mac = qbox.NewMac(
 			utils.GetStringField(config, "access_key"),
 			utils.GetStringField(config, "secret_key"),
-		),
+		)
+		bucketConfig, _ = config["config"].(*storage.Config)
+	)
+	return &Qiniu{
+		name:          utils.GetStringField(config, "name"),
+		bucket:        utils.GetStringField(config, "bucket"),
+		mac:           mac,
+		bucketManager: storage.NewBucketManager(mac, bucketConfig),
 	}
 }
 
 type Qiniu struct {
-	name   string
-	bucket string
-	mac    *qbox.Mac
+	name          string
+	bucket        string
+	mac           *qbox.Mac
+	bucketManager *storage.BucketManager
 }
 
 func (qiniu *Qiniu) Name() string {
@@ -31,12 +38,14 @@ func (qiniu *Qiniu) Name() string {
 }
 
 func (qiniu *Qiniu) Exists(path string) bool {
-	return false
+	var _, err = qiniu.bucketManager.Stat(qiniu.bucket, path)
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 func (qiniu *Qiniu) Get(path string) (string, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (qiniu *Qiniu) ReadStream(path string) (*bufio.Reader, error) {
