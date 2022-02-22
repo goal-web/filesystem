@@ -18,19 +18,15 @@ func (this ServiceProvider) Start() error {
 
 func (this ServiceProvider) Register(container contracts.Application) {
 	container.Singleton("filesystem", func(config contracts.Config) contracts.FileSystemFactory {
-		factory := &Factory{
-			config: config,
-			disks:  make(map[string]contracts.FileSystem),
-			drivers: map[string]contracts.FileSystemProvider{
-				"local": adapters.LocalAdapter,
-				"qiniu": adapters.QiniuAdapter,
-			},
-		}
-
-		return factory
+		return New(config.Get("filesystem").(Config))
 	})
 
 	container.Singleton("system.default", func(factory contracts.FileSystemFactory) contracts.FileSystem {
 		return factory
+	})
+
+	container.Singleton("system.qiniu", func(factory contracts.FileSystemFactory) *adapters.Qiniu {
+		var adapter, _ = factory.Disk("qiniu").(*adapters.Qiniu)
+		return adapter
 	})
 }

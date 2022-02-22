@@ -10,6 +10,7 @@ import (
 	"github.com/qiniu/go-sdk/v7/auth/qbox"
 	"github.com/qiniu/go-sdk/v7/storage"
 	"io/fs"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -53,7 +54,7 @@ func (q QiniuFileInfo) Sys() interface{} {
 	return nil
 }
 
-func QiniuAdapter(config contracts.Fields) contracts.FileSystem {
+func QiniuAdapter(name string, config contracts.Fields) contracts.FileSystem {
 	var (
 		mac = qbox.NewMac(
 			utils.GetStringField(config, "access_key"),
@@ -62,7 +63,7 @@ func QiniuAdapter(config contracts.Fields) contracts.FileSystem {
 		bucketConfig, _ = config["config"].(*storage.Config)
 	)
 	return &Qiniu{
-		name:          utils.GetStringField(config, "name"),
+		name:          name,
 		domain:        utils.GetStringField(config, "domain"),
 		private:       utils.GetBoolField(config, "private"),
 		bucket:        utils.GetStringField(config, "bucket"),
@@ -88,6 +89,21 @@ func (qiniu *Qiniu) Name() string {
 	return qiniu.name
 }
 
+func (qiniu *Qiniu) BucketManager() *storage.BucketManager {
+	return qiniu.bucketManager
+}
+
+func (qiniu *Qiniu) Mac() *qbox.Mac {
+	return qiniu.mac
+}
+
+func (qiniu *Qiniu) Url(key string) string {
+	if qiniu.private {
+		return storage.MakePrivateURL(qiniu.mac, qiniu.domain, key, time.Now().Add(qiniu.ttl).Unix())
+	}
+	return storage.MakePublicURL(qiniu.domain, key)
+}
+
 func (qiniu *Qiniu) Exists(path string) bool {
 	var _, err = qiniu.bucketManager.Stat(qiniu.bucket, path)
 	if err != nil {
@@ -98,23 +114,33 @@ func (qiniu *Qiniu) Exists(path string) bool {
 
 func (qiniu *Qiniu) Get(path string) (string, error) {
 	var (
-		url   string
+		url   = qiniu.Url(path)
 		bytes []byte
 	)
-	if qiniu.private {
-		url = storage.MakePrivateURL(qiniu.mac, qiniu.domain, path, time.Now().Add(qiniu.ttl).Unix())
-	} else {
-		url = storage.MakePublicURL(qiniu.domain, path)
-	}
 
 	var res, err = http.Get(url)
 	if err != nil {
 		return "", err
 	}
 
-	_, err = res.Body.Read(bytes)
+	bytes, err = ioutil.ReadAll(res.Body)
 
 	return string(bytes), err
+}
+
+func (qiniu *Qiniu) Read(path string) ([]byte, error) {
+	var (
+		url   = qiniu.Url(path)
+		bytes []byte
+	)
+	var res, err = http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	bytes, err = ioutil.ReadAll(res.Body)
+
+	return bytes, err
 }
 
 func (qiniu *Qiniu) ReadStream(path string) (*bufio.Reader, error) {
@@ -214,7 +240,7 @@ func (qiniu *Qiniu) LastModified(path string) (time.Time, error) {
 func (qiniu *Qiniu) Files(directory string) []contracts.File {
 	var (
 		limit     = 1000
-		delimiter = directory
+		delimiter = ""
 		marker    = ""
 		files     = make([]contracts.File, 0)
 	)
@@ -227,8 +253,9 @@ func (qiniu *Qiniu) Files(directory string) []contracts.File {
 		}
 		//print entries
 		for _, entry := range entries {
-			files = append(files, &file.File{
-				FileInfo: QiniuFileInfo{
+			files = append(files, &QiniuFile{
+				disk: qiniu,
+				QiniuFileInfo: QiniuFileInfo{
 					ListItem: &entry,
 					name:     entry.Key,
 				},
@@ -256,13 +283,14 @@ func (qiniu *Qiniu) AllFiles(directory string) []contracts.File {
 	for {
 		var entries, _, nextMarker, hashNext, err = qiniu.bucketManager.ListFiles(qiniu.bucket, directory, delimiter, marker, limit)
 		if err != nil {
-			logs.WithError(err).WithField("dir", directory).Debug("Qiniu.Files: ListFiles failed")
+			logs.WithError(err).WithField("dir", directory).Warn("Qiniu.Files: ListFiles failed")
 			break
 		}
 		//print entries
 		for _, entry := range entries {
-			files = append(files, &file.File{
-				FileInfo: QiniuFileInfo{
+			files = append(files, &QiniuFile{
+				disk: qiniu,
+				QiniuFileInfo: QiniuFileInfo{
 					ListItem: &entry,
 					name:     entry.Key,
 				},

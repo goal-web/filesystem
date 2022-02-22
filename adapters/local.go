@@ -20,9 +20,9 @@ type local struct {
 	perm fs.FileMode
 }
 
-func LocalAdapter(config contracts.Fields) contracts.FileSystem {
+func LocalAdapter(name string, config contracts.Fields) contracts.FileSystem {
 	return NewLocalFileSystem(
-		utils.GetStringField(config, "name"),
+		name,
 		utils.GetStringField(config, "root"),
 		config["perm"].(fs.FileMode),
 	)
@@ -58,6 +58,10 @@ func (this local) filepath(path string) string {
 	}
 	return this.root + path
 }
+func (this local) dir(path string) string {
+	var arr = strings.Split(strings.ReplaceAll(path, this.root, ""), "/")
+	return strings.Join(arr[:len(arr)-1], "/")
+}
 
 func (this *local) Name() string {
 	return this.name
@@ -79,23 +83,36 @@ func (this *local) Get(path string) (string, error) {
 	return string(contents), err
 }
 
+func (this *local) Read(path string) ([]byte, error) {
+	contents, err := ioutil.ReadFile(this.filepath(path))
+	return contents, err
+}
+
 func (this *local) ReadStream(path string) (*bufio.Reader, error) {
-	file, err := os.Open(this.filepath(path))
-	return bufio.NewReader(file), err
+	var f, err = os.Open(this.filepath(path))
+	return bufio.NewReader(f), err
 }
 
 func (this *local) Put(path, contents string) error {
-	return ioutil.WriteFile(this.filepath(path), []byte(contents), this.perm)
+	path = this.filepath(path)
+	var openFile, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, this.perm)
+	if err != nil {
+		if mkdirErr := this.MakeDirectory(this.dir(path)); mkdirErr != nil {
+			return mkdirErr
+		}
+	}
+	_, err = openFile.WriteString(contents)
+	return err
 }
 
 func (this *local) WriteStream(path string, contents string) error {
 	path = this.filepath(path)
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, this.perm)
+	openFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, this.perm)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	writer := bufio.NewWriter(file)
+	defer openFile.Close()
+	writer := bufio.NewWriter(openFile)
 	_, err = writer.WriteString(contents)
 	if err != nil {
 		return err
@@ -126,12 +143,12 @@ func (this *local) Prepend(path, contents string) error {
 
 func (this *local) Append(path, contents string) error {
 	path = this.filepath(path)
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, os.ModeAppend|this.perm)
+	var openFile, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, os.ModeAppend|this.perm)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	_, err = file.WriteString(contents)
+	defer openFile.Close()
+	_, err = openFile.WriteString(contents)
 	return err
 }
 
@@ -173,9 +190,10 @@ func (this *local) Files(directory string) (results []contracts.File) {
 
 	for _, fileInfo := range fileInfos {
 		if !fileInfo.IsDir() {
-			results = append(results, &file.File{
+			results = append(results, &File{
 				FileInfo: fileInfo,
 				DiskName: this.name,
+				path:     this.filepath(directory + "/" + fileInfo.Name()),
 			})
 		}
 	}
@@ -187,9 +205,10 @@ func (this *local) AllFiles(directory string) (results []contracts.File) {
 	fileInfos := utils.AllFiles(this.filepath(directory))
 
 	for _, fileInfo := range fileInfos {
-		results = append(results, &file.File{
+		results = append(results, &File{
 			FileInfo: fileInfo,
 			DiskName: this.name,
+			path:     this.filepath(directory + "/" + fileInfo.Name()),
 		})
 	}
 
