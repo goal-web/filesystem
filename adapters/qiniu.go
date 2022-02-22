@@ -97,6 +97,21 @@ func (qiniu *Qiniu) Mac() *qbox.Mac {
 	return qiniu.mac
 }
 
+func (qiniu *Qiniu) UploadToken(keys ...string) string {
+	if len(keys) > 0 {
+		var policy = storage.PutPolicy{Scope: qiniu.bucket + ":" + keys[0]}
+		return policy.UploadToken(qiniu.mac)
+	}
+
+	var policy = storage.PutPolicy{Scope: qiniu.bucket}
+	return policy.UploadToken(qiniu.mac)
+}
+
+// PolicyToken 创建自定义上传策略的令牌 see https://github.com/qiniu/go-sdk/blob/master/examples/create_uptoken.go
+func (qiniu *Qiniu) PolicyToken(policy storage.PutPolicy) string {
+	return policy.UploadToken(qiniu.mac)
+}
+
 func (qiniu *Qiniu) Url(key string) string {
 	if qiniu.private {
 		return storage.MakePrivateURL(qiniu.mac, qiniu.domain, key, time.Now().Add(qiniu.ttl).Unix())
