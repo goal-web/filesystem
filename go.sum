@@ -18,6 +18,9 @@ github.com/go-playground/locales v0.14.0/go.mod h1:sawfccIbzZTqEDETgFXqTho0QybSa
 github.com/go-playground/universal-translator v0.17.0/go.mod h1:UkSxE5sNxxRwHyU+Scu5vgOQjsIJAF8j9muTVoKLVtA=
 github.com/go-playground/universal-translator v0.18.0/go.mod h1:UvRDBj+xPUEGrFYl+lu/H90nyDXpg0fqeB/AQUGNTVA=
 github.com/go-playground/validator/v10 v10.8.0/go.mod h1:9JhgTzTaE31GZDpH/HSvHiRJrJ3iKAgqqH0Bl/Ocjdk=
+github.com/goal-web/contracts v0.1.39/go.mod h1:lKHynU2Kgk6xyxL4afOJM4TO1kSa3RrCJ2bm5RtFMBw=
+github.com/goal-web/contracts v0.1.50 h1:42L+xwE1svmvs8wK7INZj8TQGe8bwnZQhfYdOVj6aQo=
+github.com/goal-web/contracts v0.1.50/go.mod h1:lKHynU2Kgk6xyxL4afOJM4TO1kSa3RrCJ2bm5RtFMBw=
 github.com/goal-web/supports v0.1.16 h1:df2hSZIP27peIO4LOZNn+0iupXhmWpCt5d/+t4qMsZE=
 github.com/goal-web/supports v0.1.16/go.mod h1:/+evgdJrancJk2NRGrdnxAgc+fiApcBFieI9sPdvXvg=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
