@@ -1,4 +1,4 @@
-package filesystem
+package file
 
 import "github.com/goal-web/contracts"
 

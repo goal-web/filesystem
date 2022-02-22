@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/goal-web/contracts"
-	"github.com/goal-web/filesystem"
 	"github.com/goal-web/filesystem/file"
 	"github.com/goal-web/supports/utils"
 	"io/fs"
@@ -106,9 +105,9 @@ func (this *local) WriteStream(path string, contents string) error {
 
 func (this *local) GetVisibility(path string) contracts.FileVisibility {
 	if syscall.Access(this.filepath(path), syscall.O_RDWR) != nil {
-		return filesystem.INVISIBLE
+		return file.INVISIBLE
 	}
-	return filesystem.VISIBLE
+	return file.VISIBLE
 }
 
 func (this *local) SetVisibility(path string, perm fs.FileMode) error {

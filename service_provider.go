@@ -23,6 +23,7 @@ func (this ServiceProvider) Register(container contracts.Application) {
 			disks:  make(map[string]contracts.FileSystem),
 			drivers: map[string]contracts.FileSystemProvider{
 				"local": adapters.LocalAdapter,
+				"qiniu": adapters.QiniuAdapter,
 			},
 		}
 
