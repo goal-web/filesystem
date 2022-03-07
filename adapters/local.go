@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -68,14 +67,8 @@ func (this *local) Name() string {
 }
 
 func (this *local) Exists(path string) bool {
-	_, err := os.Stat(this.filepath(path))
-	if err == nil {
-		return true
-	}
-	if os.IsNotExist(err) {
-		return false
-	}
-	return false
+	_, err := os.Lstat(this.filepath(path))
+	return !os.IsNotExist(err)
 }
 
 func (this *local) Get(path string) (string, error) {
@@ -121,10 +114,12 @@ func (this *local) WriteStream(path string, contents string) error {
 }
 
 func (this *local) GetVisibility(path string) contracts.FileVisibility {
-	if syscall.Access(this.filepath(path), syscall.O_RDWR) != nil {
-		return file.INVISIBLE
+	openFile, err := os.OpenFile(this.filepath(path), os.O_RDWR, this.perm)
+	if openFile != nil && err == nil {
+		_ = openFile.Close()
+		return file.VISIBLE
 	}
-	return file.VISIBLE
+	return file.INVISIBLE
 }
 
 func (this *local) SetVisibility(path string, perm fs.FileMode) error {

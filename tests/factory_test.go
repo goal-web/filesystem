@@ -3,6 +3,7 @@ package tests
 import (
 	"github.com/goal-web/contracts"
 	"github.com/goal-web/filesystem"
+	"github.com/goal-web/filesystem/file"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -29,17 +30,23 @@ func TestFactory(t *testing.T) {
 		},
 	})
 
-	for _, name := range []string{"qiniu", "local"} {
+	disks := []string{
+		//"qiniu",
+		"local",
+	}
+
+	for _, name := range disks {
 		var (
-			disk = factory.Disk(name)
-			err  = disk.Put("/test/demo.txt", "goal")
+			disk   = factory.Disk(name)
+			putErr = disk.Put("/test/demo.txt", "goal")
 		)
-		assert.Nil(t, err, err)
+		assert.Nil(t, putErr, putErr)
 		var files = disk.AllFiles("/test")
 		assert.True(t, len(files) == 1)
 		var contents = files[0].ReadString()
 		assert.True(t, contents == "goal")
 		assert.True(t, disk.Exists("/test/demo.txt"))
+		assert.True(t, disk.GetVisibility("/test/demo.txt") == file.VISIBLE)
 		assert.Nil(t, disk.Delete("/test/demo.txt"))
 	}
 }
