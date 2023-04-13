@@ -8,15 +8,19 @@ import (
 type ServiceProvider struct {
 }
 
-func (this ServiceProvider) Stop() {
+func NewService() contracts.ServiceProvider {
+	return &ServiceProvider{}
+}
+
+func (provider ServiceProvider) Stop() {
 
 }
 
-func (this ServiceProvider) Start() error {
+func (provider ServiceProvider) Start() error {
 	return nil
 }
 
-func (this ServiceProvider) Register(container contracts.Application) {
+func (provider ServiceProvider) Register(container contracts.Application) {
 	container.Singleton("filesystem", func(config contracts.Config) contracts.FileSystemFactory {
 		return New(config.Get("filesystem").(Config))
 	})

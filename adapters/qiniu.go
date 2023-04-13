@@ -50,7 +50,7 @@ func (q QiniuFileInfo) IsDir() bool {
 	return q.isDir
 }
 
-func (q QiniuFileInfo) Sys() interface{} {
+func (q QiniuFileInfo) Sys() any {
 	return nil
 }
 

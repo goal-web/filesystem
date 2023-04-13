@@ -57,7 +57,7 @@ func (this *Factory) get(name string) contracts.FileSystem {
 	var driveProvider, existsProvider = this.drivers[driver]
 	if !existsProvider {
 		logs.WithError(UndefinedDefineErr).Error(fmt.Sprintf("filesystem.Factory: unsupported file system %s", driver))
-		panic(Exception{exceptions.WithError(UndefinedDefineErr, config)})
+		panic(Exception{exceptions.WithError(UndefinedDefineErr)})
 	}
 	return driveProvider(name, config)
 }
