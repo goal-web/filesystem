@@ -11,18 +11,18 @@ type File struct {
 	path     string
 }
 
-func (this *File) Read() []byte {
-	var contents, _ = ioutil.ReadFile(this.path)
+func (file *File) Read() []byte {
+	var contents, _ = ioutil.ReadFile(file.path)
 	return contents
 }
 
-func (this *File) ReadString() string {
-	contents, _ := ioutil.ReadFile(this.path)
+func (file *File) ReadString() string {
+	contents, _ := ioutil.ReadFile(file.path)
 	return string(contents)
 }
 
-func (this *File) Disk() string {
-	return this.DiskName
+func (file *File) Disk() string {
+	return file.DiskName
 }
 
 type QiniuFile struct {
