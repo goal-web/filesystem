@@ -9,8 +9,8 @@ import (
 	"github.com/goal-web/supports/utils"
 	"github.com/qiniu/go-sdk/v7/auth/qbox"
 	"github.com/qiniu/go-sdk/v7/storage"
+	"io"
 	"io/fs"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -121,10 +121,7 @@ func (qiniu *Qiniu) Url(key string) string {
 
 func (qiniu *Qiniu) Exists(path string) bool {
 	var _, err = qiniu.bucketManager.Stat(qiniu.bucket, path)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func (qiniu *Qiniu) Get(path string) (string, error) {
@@ -138,7 +135,7 @@ func (qiniu *Qiniu) Get(path string) (string, error) {
 		return "", err
 	}
 
-	bytes, err = ioutil.ReadAll(res.Body)
+	bytes, err = io.ReadAll(res.Body)
 
 	return string(bytes), err
 }
@@ -153,7 +150,7 @@ func (qiniu *Qiniu) Read(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	bytes, err = ioutil.ReadAll(res.Body)
+	bytes, err = io.ReadAll(res.Body)
 
 	return bytes, err
 }

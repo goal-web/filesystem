@@ -7,7 +7,6 @@ import (
 	"github.com/goal-web/filesystem/file"
 	"github.com/goal-web/supports/utils"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -50,47 +49,47 @@ func NewLocalFileSystem(name, root string, perm fs.FileMode) contracts.FileSyste
 	}
 }
 
-func (this local) filepath(path string) string {
+func (localAdapter local) filepath(path string) string {
 	if strings.HasPrefix(path, "/") {
 		runes := []rune(path)
 		path = string(runes[1:])
 	}
-	return this.root + path
+	return localAdapter.root + path
 }
-func (this local) dir(path string) string {
-	var arr = strings.Split(strings.ReplaceAll(path, this.root, ""), "/")
+func (localAdapter local) dir(path string) string {
+	var arr = strings.Split(strings.ReplaceAll(path, localAdapter.root, ""), "/")
 	return strings.Join(arr[:len(arr)-1], "/")
 }
 
-func (this *local) Name() string {
-	return this.name
+func (localAdapter *local) Name() string {
+	return localAdapter.name
 }
 
-func (this *local) Exists(path string) bool {
-	_, err := os.Lstat(this.filepath(path))
+func (localAdapter *local) Exists(path string) bool {
+	_, err := os.Lstat(localAdapter.filepath(path))
 	return !os.IsNotExist(err)
 }
 
-func (this *local) Get(path string) (string, error) {
-	contents, err := ioutil.ReadFile(this.filepath(path))
+func (localAdapter *local) Get(path string) (string, error) {
+	contents, err := os.ReadFile(localAdapter.filepath(path))
 	return string(contents), err
 }
 
-func (this *local) Read(path string) ([]byte, error) {
-	contents, err := ioutil.ReadFile(this.filepath(path))
+func (localAdapter *local) Read(path string) ([]byte, error) {
+	contents, err := os.ReadFile(localAdapter.filepath(path))
 	return contents, err
 }
 
-func (this *local) ReadStream(path string) (*bufio.Reader, error) {
-	var f, err = os.Open(this.filepath(path))
+func (localAdapter *local) ReadStream(path string) (*bufio.Reader, error) {
+	var f, err = os.Open(localAdapter.filepath(path))
 	return bufio.NewReader(f), err
 }
 
-func (this *local) Put(path, contents string) error {
-	path = this.filepath(path)
-	var openFile, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, this.perm)
+func (localAdapter *local) Put(path, contents string) error {
+	path = localAdapter.filepath(path)
+	var openFile, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, localAdapter.perm)
 	if err != nil {
-		if mkdirErr := this.MakeDirectory(this.dir(path)); mkdirErr != nil {
+		if mkdirErr := localAdapter.MakeDirectory(localAdapter.dir(path)); mkdirErr != nil {
 			return mkdirErr
 		}
 	}
@@ -98,9 +97,9 @@ func (this *local) Put(path, contents string) error {
 	return err
 }
 
-func (this *local) WriteStream(path string, contents string) error {
-	path = this.filepath(path)
-	openFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, this.perm)
+func (localAdapter *local) WriteStream(path string, contents string) error {
+	path = localAdapter.filepath(path)
+	openFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, localAdapter.perm)
 	if err != nil {
 		return err
 	}
@@ -113,8 +112,8 @@ func (this *local) WriteStream(path string, contents string) error {
 	return writer.Flush()
 }
 
-func (this *local) GetVisibility(path string) contracts.FileVisibility {
-	openFile, err := os.OpenFile(this.filepath(path), os.O_RDWR, this.perm)
+func (localAdapter *local) GetVisibility(path string) contracts.FileVisibility {
+	openFile, err := os.OpenFile(localAdapter.filepath(path), os.O_RDWR, localAdapter.perm)
 	if openFile != nil && err == nil {
 		_ = openFile.Close()
 		return file.VISIBLE
@@ -122,23 +121,23 @@ func (this *local) GetVisibility(path string) contracts.FileVisibility {
 	return file.INVISIBLE
 }
 
-func (this *local) SetVisibility(path string, perm fs.FileMode) error {
-	return os.Chmod(this.filepath(path), perm)
+func (localAdapter *local) SetVisibility(path string, perm fs.FileMode) error {
+	return os.Chmod(localAdapter.filepath(path), perm)
 }
 
-func (this *local) Prepend(path, contents string) error {
-	originalData, err := this.Get(path)
+func (localAdapter *local) Prepend(path, contents string) error {
+	originalData, err := localAdapter.Get(path)
 
 	if err != nil {
-		return this.WriteStream(path, contents)
+		return localAdapter.WriteStream(path, contents)
 	}
 
-	return this.WriteStream(path, contents+originalData)
+	return localAdapter.WriteStream(path, contents+originalData)
 }
 
-func (this *local) Append(path, contents string) error {
-	path = this.filepath(path)
-	var openFile, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, os.ModeAppend|this.perm)
+func (localAdapter *local) Append(path, contents string) error {
+	path = localAdapter.filepath(path)
+	var openFile, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, os.ModeAppend|localAdapter.perm)
 	if err != nil {
 		return err
 	}
@@ -147,20 +146,20 @@ func (this *local) Append(path, contents string) error {
 	return err
 }
 
-func (this *local) Delete(path string) error {
-	return os.Remove(this.filepath(path))
+func (localAdapter *local) Delete(path string) error {
+	return os.Remove(localAdapter.filepath(path))
 }
 
-func (this *local) Copy(from, to string) error {
-	return utils.CopyFile(this.filepath(from), this.filepath(to), 1000)
+func (localAdapter *local) Copy(from, to string) error {
+	return utils.CopyFile(localAdapter.filepath(from), localAdapter.filepath(to), 1000)
 }
 
-func (this *local) Move(from, to string) error {
-	return os.Rename(this.filepath(from), this.filepath(to))
+func (localAdapter *local) Move(from, to string) error {
+	return os.Rename(localAdapter.filepath(from), localAdapter.filepath(to))
 }
 
-func (this *local) Size(path string) (int64, error) {
-	stat, err := os.Stat(this.filepath(path))
+func (localAdapter *local) Size(path string) (int64, error) {
+	stat, err := os.Stat(localAdapter.filepath(path))
 	if err != nil {
 		return 0, err
 	}
@@ -168,8 +167,8 @@ func (this *local) Size(path string) (int64, error) {
 	return stat.Size(), nil
 }
 
-func (this *local) LastModified(path string) (time.Time, error) {
-	stat, err := os.Stat(this.filepath(path))
+func (localAdapter *local) LastModified(path string) (time.Time, error) {
+	stat, err := os.Stat(localAdapter.filepath(path))
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -177,18 +176,19 @@ func (this *local) LastModified(path string) (time.Time, error) {
 	return stat.ModTime(), nil
 }
 
-func (this *local) Files(directory string) (results []contracts.File) {
-	fileInfos, err := ioutil.ReadDir(this.filepath(directory))
+func (localAdapter *local) Files(directory string) (results []contracts.File) {
+	fileInfos, err := os.ReadDir(localAdapter.filepath(directory))
 	if err != nil {
 		return
 	}
 
 	for _, fileInfo := range fileInfos {
 		if !fileInfo.IsDir() {
+			info, _ := fileInfo.Info()
 			results = append(results, &File{
-				FileInfo: fileInfo,
-				DiskName: this.name,
-				path:     this.filepath(directory + "/" + fileInfo.Name()),
+				FileInfo: info,
+				DiskName: localAdapter.name,
+				path:     localAdapter.filepath(directory + "/" + fileInfo.Name()),
 			})
 		}
 	}
@@ -196,22 +196,22 @@ func (this *local) Files(directory string) (results []contracts.File) {
 	return
 }
 
-func (this *local) AllFiles(directory string) (results []contracts.File) {
-	fileInfos := utils.AllFiles(this.filepath(directory))
+func (localAdapter *local) AllFiles(directory string) (results []contracts.File) {
+	fileInfos := utils.AllFiles(localAdapter.filepath(directory))
 
 	for _, fileInfo := range fileInfos {
 		results = append(results, &File{
 			FileInfo: fileInfo,
-			DiskName: this.name,
-			path:     this.filepath(directory + "/" + fileInfo.Name()),
+			DiskName: localAdapter.name,
+			path:     localAdapter.filepath(directory + "/" + fileInfo.Name()),
 		})
 	}
 
 	return
 }
 
-func (this *local) Directories(directory string) (results []string) {
-	fileInfos, err := ioutil.ReadDir(this.filepath(directory))
+func (localAdapter *local) Directories(directory string) (results []string) {
+	fileInfos, err := os.ReadDir(localAdapter.filepath(directory))
 	if err != nil {
 		return
 	}
@@ -224,14 +224,14 @@ func (this *local) Directories(directory string) (results []string) {
 	return results
 }
 
-func (this *local) AllDirectories(directory string) []string {
-	return utils.AllDirectories(this.filepath(directory))
+func (localAdapter *local) AllDirectories(directory string) []string {
+	return utils.AllDirectories(localAdapter.filepath(directory))
 }
 
-func (this *local) MakeDirectory(path string) error {
-	return os.Mkdir(this.filepath(path), this.perm)
+func (localAdapter *local) MakeDirectory(path string) error {
+	return os.Mkdir(localAdapter.filepath(path), localAdapter.perm)
 }
 
-func (this *local) DeleteDirectory(directory string) error {
-	return os.RemoveAll(this.filepath(directory))
+func (localAdapter *local) DeleteDirectory(directory string) error {
+	return os.RemoveAll(localAdapter.filepath(directory))
 }

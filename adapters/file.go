@@ -2,7 +2,7 @@ package adapters
 
 import (
 	"io/fs"
-	"io/ioutil"
+	"os"
 )
 
 type File struct {
@@ -12,12 +12,12 @@ type File struct {
 }
 
 func (file *File) Read() []byte {
-	var contents, _ = ioutil.ReadFile(file.path)
+	var contents, _ = os.ReadFile(file.path)
 	return contents
 }
 
 func (file *File) ReadString() string {
-	contents, _ := ioutil.ReadFile(file.path)
+	contents, _ := os.ReadFile(file.path)
 	return string(contents)
 }
 
@@ -31,16 +31,16 @@ type QiniuFile struct {
 	disk     *Qiniu
 }
 
-func (this *QiniuFile) Disk() string {
-	return this.DiskName
+func (qiniuFile *QiniuFile) Disk() string {
+	return qiniuFile.DiskName
 }
 
-func (this *QiniuFile) Read() []byte {
-	var bytes, _ = this.disk.Read(this.Name())
+func (qiniuFile *QiniuFile) Read() []byte {
+	var bytes, _ = qiniuFile.disk.Read(qiniuFile.Name())
 	return bytes
 }
 
-func (this *QiniuFile) ReadString() string {
-	var contents, _ = this.disk.Get(this.Name())
+func (qiniuFile *QiniuFile) ReadString() string {
+	var contents, _ = qiniuFile.disk.Get(qiniuFile.Name())
 	return contents
 }
