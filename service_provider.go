@@ -25,7 +25,7 @@ func (provider ServiceProvider) Register(container contracts.Application) {
 		return New(config.Get("filesystem").(Config))
 	})
 
-	container.Singleton("system.default", func(factory contracts.FileSystemFactory) contracts.FileSystem {
+	container.Singleton("fs.default", func(factory contracts.FileSystemFactory) contracts.FileSystem {
 		return factory
 	})
 
