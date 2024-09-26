@@ -10,6 +10,7 @@ import (
 	"github.com/goal-web/supports/logs"
 	"github.com/goal-web/supports/utils"
 	"io/fs"
+	"sync"
 	"time"
 )
 
@@ -31,30 +32,35 @@ func New(config Config) contracts.FileSystemFactory {
 
 type Factory struct {
 	config  Config
+	mutex   sync.Mutex
 	disks   map[string]contracts.FileSystem
 	drivers map[string]contracts.FileSystemProvider
 }
 
-func (this *Factory) Disk(name string) contracts.FileSystem {
-	if disk, existsStore := this.disks[name]; existsStore {
+func (factory *Factory) Disk(name string) contracts.FileSystem {
+	if disk, existsStore := factory.disks[name]; existsStore {
 		return disk
 	}
 
-	this.disks[name] = this.get(name)
+	factory.mutex.Lock()
+	factory.disks[name] = factory.get(name)
+	factory.mutex.Unlock()
 
-	return this.disks[name]
+	return factory.disks[name]
 }
 
-func (this *Factory) Extend(driver string, provider contracts.FileSystemProvider) {
-	this.drivers[driver] = provider
+func (factory *Factory) Extend(driver string, provider contracts.FileSystemProvider) {
+	factory.mutex.Lock()
+	defer factory.mutex.Unlock()
+	factory.drivers[driver] = provider
 }
 
-func (this *Factory) get(name string) contracts.FileSystem {
+func (factory *Factory) get(name string) contracts.FileSystem {
 	var (
-		config = this.config.Disks[name]
-		driver = utils.GetStringField(config, "driver", this.config.Default)
+		config = factory.config.Disks[name]
+		driver = utils.GetStringField(config, "driver", factory.config.Default)
 	)
-	var driveProvider, existsProvider = this.drivers[driver]
+	var driveProvider, existsProvider = factory.drivers[driver]
 	if !existsProvider {
 		logs.WithError(UndefinedDefineErr).Error(fmt.Sprintf("filesystem.Factory: unsupported file system %s", driver))
 		panic(Exception{exceptions.WithError(UndefinedDefineErr)})
@@ -62,90 +68,90 @@ func (this *Factory) get(name string) contracts.FileSystem {
 	return driveProvider(name, config)
 }
 
-func (this *Factory) Name() string {
-	return this.Disk(this.config.Default).Name()
+func (factory *Factory) Name() string {
+	return factory.Disk(factory.config.Default).Name()
 }
 
-func (this *Factory) Exists(path string) bool {
-	return this.Disk(this.config.Default).Exists(path)
+func (factory *Factory) Exists(path string) bool {
+	return factory.Disk(factory.config.Default).Exists(path)
 }
 
-func (this *Factory) Get(path string) (string, error) {
-	return this.Disk(this.config.Default).Get(path)
+func (factory *Factory) Get(path string) (string, error) {
+	return factory.Disk(factory.config.Default).Get(path)
 }
 
-func (this *Factory) Read(path string) ([]byte, error) {
-	return this.Disk(this.config.Default).Read(path)
+func (factory *Factory) Read(path string) ([]byte, error) {
+	return factory.Disk(factory.config.Default).Read(path)
 }
 
-func (this *Factory) ReadStream(path string) (*bufio.Reader, error) {
-	return this.Disk(this.config.Default).ReadStream(path)
+func (factory *Factory) ReadStream(path string) (*bufio.Reader, error) {
+	return factory.Disk(factory.config.Default).ReadStream(path)
 }
 
-func (this *Factory) Put(path, contents string) error {
-	return this.Disk(this.config.Default).Put(path, contents)
+func (factory *Factory) Put(path, contents string) error {
+	return factory.Disk(factory.config.Default).Put(path, contents)
 }
 
-func (this *Factory) WriteStream(path string, contents string) error {
-	return this.Disk(this.config.Default).WriteStream(path, contents)
+func (factory *Factory) WriteStream(path string, contents string) error {
+	return factory.Disk(factory.config.Default).WriteStream(path, contents)
 }
 
-func (this *Factory) GetVisibility(path string) contracts.FileVisibility {
-	return this.Disk(this.config.Default).GetVisibility(path)
+func (factory *Factory) GetVisibility(path string) contracts.FileVisibility {
+	return factory.Disk(factory.config.Default).GetVisibility(path)
 }
 
-func (this *Factory) SetVisibility(path string, perm fs.FileMode) error {
-	return this.Disk(this.config.Default).SetVisibility(path, perm)
+func (factory *Factory) SetVisibility(path string, perm fs.FileMode) error {
+	return factory.Disk(factory.config.Default).SetVisibility(path, perm)
 }
 
-func (this *Factory) Prepend(path, contents string) error {
-	return this.Disk(this.config.Default).Prepend(path, contents)
+func (factory *Factory) Prepend(path, contents string) error {
+	return factory.Disk(factory.config.Default).Prepend(path, contents)
 }
 
-func (this *Factory) Append(path, contents string) error {
-	return this.Disk(this.config.Default).Append(path, contents)
+func (factory *Factory) Append(path, contents string) error {
+	return factory.Disk(factory.config.Default).Append(path, contents)
 }
 
-func (this *Factory) Delete(path string) error {
-	return this.Disk(this.config.Default).Delete(path)
+func (factory *Factory) Delete(path string) error {
+	return factory.Disk(factory.config.Default).Delete(path)
 }
 
-func (this *Factory) Copy(from, to string) error {
-	return this.Disk(this.config.Default).Copy(from, to)
+func (factory *Factory) Copy(from, to string) error {
+	return factory.Disk(factory.config.Default).Copy(from, to)
 }
 
-func (this *Factory) Move(from, to string) error {
-	return this.Disk(this.config.Default).Move(from, to)
+func (factory *Factory) Move(from, to string) error {
+	return factory.Disk(factory.config.Default).Move(from, to)
 }
 
-func (this *Factory) Size(path string) (int64, error) {
-	return this.Disk(this.config.Default).Size(path)
+func (factory *Factory) Size(path string) (int64, error) {
+	return factory.Disk(factory.config.Default).Size(path)
 }
 
-func (this *Factory) LastModified(path string) (time.Time, error) {
-	return this.Disk(this.config.Default).LastModified(path)
+func (factory *Factory) LastModified(path string) (time.Time, error) {
+	return factory.Disk(factory.config.Default).LastModified(path)
 }
 
-func (this *Factory) Files(directory string) []contracts.File {
-	return this.Disk(this.config.Default).Files(directory)
+func (factory *Factory) Files(directory string) []contracts.File {
+	return factory.Disk(factory.config.Default).Files(directory)
 }
 
-func (this *Factory) AllFiles(directory string) []contracts.File {
-	return this.Disk(this.config.Default).AllFiles(directory)
+func (factory *Factory) AllFiles(directory string) []contracts.File {
+	return factory.Disk(factory.config.Default).AllFiles(directory)
 }
 
-func (this *Factory) Directories(directory string) []string {
-	return this.Disk(this.config.Default).Directories(directory)
+func (factory *Factory) Directories(directory string) []string {
+	return factory.Disk(factory.config.Default).Directories(directory)
 }
 
-func (this *Factory) AllDirectories(directory string) []string {
-	return this.Disk(this.config.Default).AllDirectories(directory)
+func (factory *Factory) AllDirectories(directory string) []string {
+	return factory.Disk(factory.config.Default).AllDirectories(directory)
 }
 
-func (this *Factory) MakeDirectory(path string) error {
-	return this.Disk(this.config.Default).MakeDirectory(path)
+func (factory *Factory) MakeDirectory(path string) error {
+	return factory.Disk(factory.config.Default).MakeDirectory(path)
 }
 
-func (this *Factory) DeleteDirectory(directory string) error {
-	return this.Disk(this.config.Default).DeleteDirectory(directory)
+func (factory *Factory) DeleteDirectory(directory string) error {
+	return factory.Disk(factory.config.Default).DeleteDirectory(directory)
 }
