@@ -25,6 +25,7 @@ func New(config Config) contracts.FileSystemFactory {
 		drivers: map[string]contracts.FileSystemProvider{
 			"local": adapters.LocalAdapter,
 			"qiniu": adapters.QiniuAdapter,
+			"oss":   adapters.OssAdapter,
 		},
 	}
 
