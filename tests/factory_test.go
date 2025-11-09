@@ -1,12 +1,13 @@
 package tests
 
 import (
+	"os"
+	"testing"
+
 	"github.com/goal-web/contracts"
 	"github.com/goal-web/filesystem"
 	"github.com/goal-web/filesystem/file"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
 )
 
 func TestFactory(t *testing.T) {
@@ -15,7 +16,7 @@ func TestFactory(t *testing.T) {
 		Disks: map[string]contracts.Fields{
 			"local": {
 				"driver": "local",
-				"root":   "/Users/qbhy/project/go/goal-web/filesystem/tests",
+				"root":   "/Users/qbhy/GolandProjects/go/goal-web/filesystem/tests",
 				"perm":   os.ModePerm,
 			},
 			"qiniu": {

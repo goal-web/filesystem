@@ -4,8 +4,6 @@ go 1.25.0
 
 require (
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
-	github.com/goal-web/contracts v0.5.3
-	github.com/goal-web/supports v0.5.8
 	github.com/qiniu/go-sdk/v7 v7.11.1
 	github.com/stretchr/testify v1.7.0
 )
