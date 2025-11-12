@@ -125,9 +125,10 @@ func (o *Oss) Url(path string) string {
     return "https://" + o.bucketName + "." + o.endpoint + "/" + key
 }
 
-// RefreshUrlIfExpired 检测链接是否过期；若过期，生成并返回新的链接，否则返回原链接
+// RefreshUrlIfExpired 检测链接是否过期；若过期或接近过期（在 refreshThreshold 秒内），生成并返回新的链接，否则返回原链接
 // 支持 V1（Expires）与 V4（x-oss-date + x-oss-expires）两种签名格式判断
-func (o *Oss) RefreshUrlIfExpired(link string) string {
+// refreshThreshold: 在过期前多少秒内进行刷新（默认为 0，即仅在过期时刷新）
+func (o *Oss) RefreshUrlIfExpired(link string, refreshThreshold int64) string {
     u, err := url.Parse(link)
     if err != nil {
         // 非法URL，直接返回原样，以避免误判
@@ -139,7 +140,7 @@ func (o *Oss) RefreshUrlIfExpired(link string) string {
     // V1：查询参数包含 Expires（Unix 秒）
     if expStr := q.Get("Expires"); expStr != "" {
         if exp, err := strconv.ParseInt(expStr, 10, 64); err == nil {
-            if now.Unix() >= exp {
+            if now.Unix() >= exp || now.Unix() >= exp-refreshThreshold {
                 // 过期，基于路径重新生成；保留原有非签名参数
                 key := strings.TrimLeft(u.Path, "/")
                 if o.private {
@@ -171,7 +172,7 @@ func (o *Oss) RefreshUrlIfExpired(link string) string {
         if dateStr := q.Get("x-oss-date"); dateStr != "" {
             if base, err := time.Parse("20060102T150405Z", dateStr); err == nil {
                 if v4Exp, err := strconv.ParseInt(v4ExpStr, 10, 64); err == nil {
-                    if now.After(base.Add(time.Duration(v4Exp) * time.Second)) {
+                    if now.After(base.Add(time.Duration(v4Exp) * time.Second)) || now.After(base.Add(time.Duration(v4Exp-refreshThreshold) * time.Second)) {
                         key := strings.TrimLeft(u.Path, "/")
                         if o.private {
                             // 过期，按原参数重新签名
